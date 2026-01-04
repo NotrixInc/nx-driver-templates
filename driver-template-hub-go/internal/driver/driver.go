@@ -7,8 +7,8 @@ import (
   "sync"
   "time"
 
-  "github.com/NotrixInc/NXdriver-SDK/pkg/driversdk"
-  "github.com/NotrixInc/NXdriver-SDK/pkg/driversdk/hostrpc"
+  "github.com/NotrixInc/nx-driver-sdk"
+  "github.com/NotrixInc/nx-driver-sdk/hostrpc"
   "google.golang.org/grpc"
   "google.golang.org/grpc/credentials/insecure"
   "os"

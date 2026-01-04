@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NotrixInc/NXdriver-SDK/pkg/driversdk"
+	"github.com/NotrixInc/nx-driver-sdk"
 )
 
 type ExampleIPDriver struct {

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yourorg/controller-platform/pkg/driversdk"
+	"github.com/NotrixInc/nx-driver-sdk"
 	"github.com/yourorg/nxdriver-host-minimal/internal/config"
 )
 

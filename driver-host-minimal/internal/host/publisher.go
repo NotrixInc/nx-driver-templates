@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/yourorg/controller-platform/pkg/driversdk"
+	"github.com/NotrixInc/nx-driver-sdk"
 )
 
 // PublisherMode supports dev flows until you wire gRPC CoreService.

@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/yourorg/controller-platform/pkg/driversdk"
+	"github.com/NotrixInc/nx-driver-sdk"
 	"github.com/yourorg/nxdriver-host-minimal/internal/config"
 	"github.com/yourorg/nxdriver-host-minimal/internal/host"
 )

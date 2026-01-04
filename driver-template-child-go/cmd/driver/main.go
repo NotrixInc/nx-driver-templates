@@ -9,7 +9,7 @@ import (
   "syscall"
   "time"
 
-  "github.com/NotrixInc/NXdriver-SDK/pkg/driversdk"
+  "github.com/NotrixInc/nx-driver-sdk"
   "github.com/NotrixInc/NXdriver-SDK/driver-template-child-go/internal/driver"
 )
 

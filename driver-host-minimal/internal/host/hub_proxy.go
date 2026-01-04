@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/yourorg/controller-platform/pkg/driversdk"
+	"github.com/NotrixInc/nx-driver-sdk"
 )
 
 // HubInstance is the minimal callable surface the host needs for routing.

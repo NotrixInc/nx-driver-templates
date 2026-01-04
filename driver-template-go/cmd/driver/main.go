@@ -10,8 +10,8 @@ import (
 	"time"
 
 	// Replace with your published module path
-	// "github.com/yourorg/controller-platform/pkg/driversdk"
-	"github.com/NotrixInc/NXdriver-SDK/pkg/driversdk"
+	// "github.com/NotrixInc/nx-driver-sdk"
+	"github.com/NotrixInc/nx-driver-sdk"
 
 	"github.com/NotrixInc/NXdriver-SDK/driver-template-go/internal/driver"
 )

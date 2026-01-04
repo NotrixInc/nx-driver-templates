@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yourorg/controller-platform/pkg/driversdk/hostrpc"
+	"github.com/NotrixInc/nx-driver-sdk/hostrpc"
 	"google.golang.org/grpc"
 )
 
