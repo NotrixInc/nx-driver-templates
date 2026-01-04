@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "ip": { "type": "string", "description": "Hub IP address" },
+    "port": { "type": "integer", "default": 80 },
+    "token": { "type": "string", "description": "Optional auth token" },
+    "poll_interval_seconds": { "type": "integer", "default": 5, "minimum": 1 }
+  },
+  "required": ["ip"]
+}

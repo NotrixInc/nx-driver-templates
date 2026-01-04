@@ -1,0 +1,12 @@
+{
+  "id": "com.example.template.ip-device",
+  "name": "Example IP Device Driver",
+  "version": "1.0.0",
+  "driver_type": "DEVICE",
+  "supported_topologies": ["DIRECT_IP"],
+  "protocols": ["IP"],
+  "entrypoint": {
+    "runtime": "go",
+    "path": "bin/driver"
+  }
+}

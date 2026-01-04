@@ -1,0 +1,22 @@
+{
+  "id": "com.example.template.child.zigbee-dimmer",
+  "name": "Example Child Driver (Zigbee Dimmer)",
+  "version": "1.0.0",
+  "driver_type": "CHILD",
+  "supported_topologies": [
+    "VIA_HUB"
+  ],
+  "protocols": [
+    "ZIGBEE"
+  ],
+  "requires_hub": [
+    {
+      "hub_driver_id": "com.example.template.hub",
+      "min_version": "1.0.0"
+    }
+  ],
+  "entrypoint": {
+    "runtime": "go",
+    "path": "bin/driver"
+  }
+}

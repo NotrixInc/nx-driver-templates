@@ -1,0 +1,11 @@
+{
+  "endpoints": [
+    {
+      "id": "power",
+      "name": "Power",
+      "direction": "BIDIR",
+      "type": "switch",
+      "value_schema": { "type": "boolean" }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "instances": [
+    {
+      "instance_id": "example-device-1",
+      "device_id": "00000000-0000-0000-0000-000000000001",
+      "driver_id": "com.example.template.ip-device",
+      "driver_type": "DEVICE",
+      "binary": "driver",
+      "config": {
+        "ip": "192.168.1.50",
+        "port": 80,
+        "token": "",
+        "poll_interval_seconds": 5
+      }
+    }
+  ]
+}

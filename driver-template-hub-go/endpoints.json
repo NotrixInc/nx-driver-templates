@@ -1,0 +1,11 @@
+{
+  "endpoints": [
+    {
+      "id": "permit_join",
+      "name": "Permit Join",
+      "direction": "BIDIR",
+      "type": "toggle",
+      "value_schema": { "type": "boolean" }
+    }
+  ]
+}

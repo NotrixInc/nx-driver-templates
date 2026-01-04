@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "hub_device_id": { "type": "string", "description": "Core hub device UUID" },
+    "child_ref": { "type": "string", "description": "Child reference in hub namespace" },
+    "poll_interval_seconds": { "type": "integer", "default": 5, "minimum": 1 }
+  },
+  "required": ["hub_device_id","child_ref"]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "com.example.template.hub",
+  "name": "Example Hub Driver",
+  "version": "1.0.0",
+  "driver_type": "HUB",
+  "supported_topologies": [
+    "DIRECT_IP"
+  ],
+  "protocols": [
+    "IP"
+  ],
+  "entrypoint": {
+    "runtime": "go",
+    "path": "bin/driver"
+  }
+}

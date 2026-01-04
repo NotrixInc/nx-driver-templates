@@ -1,0 +1,5 @@
+{
+  "variables": [
+    { "key": "rssi", "type": "integer", "unit": "dBm", "read_only": true }
+  ]
+}

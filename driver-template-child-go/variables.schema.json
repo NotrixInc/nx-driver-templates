@@ -1,0 +1,5 @@
+{
+  "variables": [
+    { "key": "lqi", "type": "integer", "unit": "", "read_only": true }
+  ]
+}

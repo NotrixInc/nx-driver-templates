@@ -1,0 +1,5 @@
+{
+  "variables": [
+    { "key": "child_count", "type": "integer", "unit": "", "read_only": true }
+  ]
+}
