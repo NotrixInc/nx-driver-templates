@@ -3,8 +3,11 @@
     {
       "id": "power",
       "name": "Power",
-      "direction": "BIDIR",
-      "type": "switch",
+      "direction": "Output",
+      "type": "Control",
+      "connection": "IP",
+      "icon": "ip",
+      "multi_binding": false,
       "value_schema": { "type": "boolean" }
     }
   ]

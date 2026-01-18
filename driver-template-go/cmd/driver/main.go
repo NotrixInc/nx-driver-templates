@@ -11,15 +11,15 @@ import (
 
 	// Replace with your published module path
 	// "github.com/NotrixInc/nx-driver-sdk"
-	"github.com/NotrixInc/nx-driver-sdk"
+	driversdk "github.com/NotrixInc/nx-driver-sdk"
 
-	"github.com/NotrixInc/NXdriver-SDK/driver-template-go/internal/driver"
+	"github.com/NotrixInc/nx-driver-templates/driver-template-go/internal/driver"
 )
 
 func main() {
 	var (
-		deviceID  = flag.String("device_id", "", "Core device UUID (assigned by controller-core)")
-		cfgPath   = flag.String("config", "", "Path to config JSON file")
+		deviceID = flag.String("device_id", "", "Core device UUID (assigned by controller-core)")
+		cfgPath  = flag.String("config", "", "Path to config JSON file")
 	)
 	flag.Parse()
 

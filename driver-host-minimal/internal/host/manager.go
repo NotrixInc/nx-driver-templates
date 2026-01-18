@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NotrixInc/nx-driver-sdk"
-	"github.com/yourorg/nxdriver-host-minimal/internal/config"
+	driversdk "github.com/NotrixInc/nx-driver-sdk"
+	"github.com/NotrixInc/nx-driver-templates/driver-host-minimal/internal/config"
 )
 
 // NOTE: This minimal host does not dynamically load Go plugins.
@@ -19,8 +19,8 @@ import (
 // or by linking drivers as libraries. This file provides the scaffolding for hub registry and instance lifecycle.
 
 type Instance struct {
-	Spec config.InstanceSpec
-	Proc *Proc
+	Spec    config.InstanceSpec
+	Proc    *Proc
 	WorkDir string
 }
 
@@ -35,19 +35,19 @@ type Manager struct {
 
 	Hubs *HubRegistry
 
-	mu sync.Mutex
+	mu        sync.Mutex
 	instances map[string]*Instance
 }
 
 func NewManager(driversDir, outDir string, pub driversdk.Publisher, hostGRPCAddr string) *Manager {
 	return &Manager{
-		DriversDir: driversDir,
-		OutDir: outDir,
-		Publisher: pub,
-		Logger: NewStdLogger(),
-		Clock: SystemClock{},
-		Hubs: NewHubRegistry(),
-		instances: map[string]*Instance{},
+		DriversDir:   driversDir,
+		OutDir:       outDir,
+		Publisher:    pub,
+		Logger:       NewStdLogger(),
+		Clock:        SystemClock{},
+		Hubs:         NewHubRegistry(),
+		instances:    map[string]*Instance{},
 		HostGRPCAddr: hostGRPCAddr,
 	}
 }
@@ -77,10 +77,10 @@ func (m *Manager) StartOne(ctx context.Context, s config.InstanceSpec) error {
 	env := []string{"NX_HOST_GRPC_ADDR=" + m.HostGRPCAddr}
 	if err := proc.Start(ctx, StartSpec{
 		BinaryPath: binPath,
-		DeviceID: s.DeviceID,
+		DeviceID:   s.DeviceID,
 		ConfigJSON: s.Config,
-		WorkDir: work,
-		Env: env,
+		WorkDir:    work,
+		Env:        env,
 	}); err != nil {
 		return err
 	}
@@ -95,7 +95,9 @@ func (m *Manager) StartOne(ctx context.Context, s config.InstanceSpec) error {
 }
 
 func (m *Manager) pipeLogs(stream, instanceID string, r io.ReadCloser) {
-	if r == nil { return }
+	if r == nil {
+		return
+	}
 	go func() {
 		buf := make([]byte, 4096)
 		for {

@@ -3,8 +3,11 @@
     {
       "id": "power",
       "name": "Power",
-      "direction": "BIDIR",
-      "type": "switch",
+      "direction": "Output",
+      "type": "Control",
+      "connection": "ZigBee",
+      "icon": "zigbee",
+      "multi_binding": false,
       "value_schema": { "type": "boolean" }
     }
   ]

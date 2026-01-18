@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NotrixInc/nx-driver-sdk"
+	driversdk "github.com/NotrixInc/nx-driver-sdk"
 )
 
 type ExampleIPDriver struct {
@@ -25,15 +25,19 @@ type ExampleIPDriver struct {
 func NewExampleIPDriver(deviceID string) *ExampleIPDriver {
 	return &ExampleIPDriver{
 		deviceID: deviceID,
-		stopCh:  make(chan struct{}),
+		stopCh:   make(chan struct{}),
 	}
 }
 
-func (d *ExampleIPDriver) ID() string            { return "com.example.template.ip-device" }
-func (d *ExampleIPDriver) Version() string       { return "1.0.0" }
+func (d *ExampleIPDriver) ID() string                 { return "com.example.template.ip-device" }
+func (d *ExampleIPDriver) Version() string            { return "1.0.0" }
 func (d *ExampleIPDriver) Type() driversdk.DriverType { return driversdk.DriverTypeDevice }
-func (d *ExampleIPDriver) Protocols() []driversdk.Protocol { return []driversdk.Protocol{driversdk.ProtocolIP} }
-func (d *ExampleIPDriver) Topologies() []driversdk.Topology { return []driversdk.Topology{driversdk.TopologyDirectIP} }
+func (d *ExampleIPDriver) Protocols() []driversdk.Protocol {
+	return []driversdk.Protocol{driversdk.ProtocolIP}
+}
+func (d *ExampleIPDriver) Topologies() []driversdk.Topology {
+	return []driversdk.Topology{driversdk.TopologyDirectIP}
+}
 
 func (d *ExampleIPDriver) Init(ctx context.Context, deps driversdk.Dependencies, cfg driversdk.JsonConfig) error {
 	d.deps = deps
@@ -56,37 +60,42 @@ func (d *ExampleIPDriver) Endpoints() ([]driversdk.Endpoint, error) {
 	valueSchema, _ := json.Marshal(map[string]any{"type": "boolean"})
 	return []driversdk.Endpoint{
 		{
-			Key:        "power",
-			Name:       "Power",
-			Direction:  "BIDIR",
-			Type:       "switch",
-			ValueSchema: valueSchema,
-			Meta:       map[string]string{},
+			Key:          "power",
+			Name:         "Power",
+			Direction:    driversdk.EndpointDirectionOutput,
+			Kind:         driversdk.EndpointKindControl,
+			Connection:   driversdk.EndpointConnectionIP,
+			Icon:         "ip",
+			MultiBinding: false,
+			ControlType:  "switch",
+			ValueSchema:  valueSchema,
+			Meta:         map[string]string{},
 		},
 	}, nil
 }
 
 func (d *ExampleIPDriver) Variables() ([]driversdk.Variable, error) {
 	return []driversdk.Variable{
-		{Key: "rssi", Type: "integer", Unit: "dBm", ReadOnly: true},
+		{Key: "rssi", Type: driversdk.VariableTypeNumber, Unit: "dBm", Readable: true, Writable: false},
+		{Key: "device_name", Type: driversdk.VariableTypeText, Unit: "", Readable: true, Writable: true},
 	}, nil
 }
 
 func (d *ExampleIPDriver) Start(ctx context.Context) error {
 	// Upsert device + descriptors (driver-host typically handles this once per instance)
 	desc := driversdk.DeviceDescriptor{
-		DeviceID:          d.deviceID,
-		DriverID:          d.ID(),
-		ExternalDeviceKey: "ip:" + d.cfg.IP, // stable identity key for direct IP
-		DisplayName:       "Example IP Device",
-		DeviceType:        "switch",
-		Manufacturer:      "Example",
-		Model:             "Template",
-		Firmware:          "",
-		IPAddress:         d.cfg.IP,
+		DeviceID:           d.deviceID,
+		DriverID:           d.ID(),
+		ExternalDeviceKey:  "ip:" + d.cfg.IP, // stable identity key for direct IP
+		DisplayName:        "Example IP Device",
+		DeviceType:         "switch",
+		Manufacturer:       "Example",
+		Model:              "Template",
+		Firmware:           "",
+		IPAddress:          d.cfg.IP,
 		ConnectionCategory: "DIRECT_IP",
 		Protocol:           "IP",
-		Meta:              map[string]string{},
+		Meta:               map[string]string{},
 	}
 	_ = d.deps.Publisher.UpsertDevice(ctx, desc)
 

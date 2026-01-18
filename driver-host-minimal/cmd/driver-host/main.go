@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/NotrixInc/nx-driver-sdk"
-	"github.com/yourorg/nxdriver-host-minimal/internal/config"
-	"github.com/yourorg/nxdriver-host-minimal/internal/host"
+	driversdk "github.com/NotrixInc/nx-driver-sdk"
+	"github.com/NotrixInc/nx-driver-templates/driver-host-minimal/internal/config"
+	"github.com/NotrixInc/nx-driver-templates/driver-host-minimal/internal/host"
 )
 
 func main() {

@@ -1,5 +1,6 @@
 {
   "variables": [
-    { "key": "rssi", "type": "integer", "unit": "dBm", "read_only": true }
+    { "key": "rssi", "type": "Number", "unit": "dBm", "readable": true, "writable": false },
+    { "key": "device_name", "type": "Text", "unit": "", "readable": true, "writable": true }
   ]
 }

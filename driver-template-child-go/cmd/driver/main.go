@@ -1,49 +1,56 @@
 package main
 
 import (
-	"encoding/json"
-  "context"
-  "flag"
-  "os"
-  "os/signal"
-  "syscall"
-  "time"
+	"context"
+	"flag"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-  "github.com/NotrixInc/nx-driver-sdk"
-  "github.com/NotrixInc/NXdriver-SDK/driver-template-child-go/internal/driver"
+	driversdk "github.com/NotrixInc/nx-driver-sdk"
+	"github.com/NotrixInc/nx-driver-templates/driver-template-child-go/internal/driver"
 )
 
 func main() {
-  var deviceID = flag.String("device_id", "", "Core child device UUID")
-  var cfgPath  = flag.String("config", "", "Path to config JSON")
-  flag.Parse()
+	var deviceID = flag.String("device_id", "", "Core child device UUID")
+	var cfgPath = flag.String("config", "", "Path to config JSON")
+	flag.Parse()
 
-  if *cfgPath == "" { panic("missing -config") }
-  cfgBytes, err := os.ReadFile(*cfgPath)
-  if err != nil { panic(err) }
+	if *cfgPath == "" {
+		panic("missing -config")
+	}
+	cfgBytes, err := os.ReadFile(*cfgPath)
+	if err != nil {
+		panic(err)
+	}
 
-  deps := driversdk.Dependencies{
-    Publisher: driversdk.NewNoopPublisher(), // driver-host replaces in production
-    Logger:    driversdk.NewStdLogger(),
-    Clock:     driversdk.NewSystemClock(),
-  }
+	deps := driversdk.Dependencies{
+		Publisher: driversdk.NewNoopPublisher(), // driver-host replaces in production
+		Logger:    driversdk.NewStdLogger(),
+		Clock:     driversdk.NewSystemClock(),
+	}
 
-  d := driver.NewExampleChildDriver(*deviceID)
+	d := driver.NewExampleChildDriver(*deviceID)
 
-  ctx, cancel := context.WithCancel(context.Background())
-  defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-  if err := d.Init(ctx, deps, driversdk.NewJSONConfig(cfgBytes)); err != nil { panic(err) }
+	if err := d.Init(ctx, deps, driversdk.NewJSONConfig(cfgBytes)); err != nil {
+		panic(err)
+	}
 
-  // In production, driver-host will call BindHub(...) before Start().
-  // For local dev, the child can run without hub binding (commands will fail cleanly).
-  if err := d.Start(ctx); err != nil { panic(err) }
+	// In production, driver-host will call BindHub(...) before Start().
+	// For local dev, the child can run without hub binding (commands will fail cleanly).
+	if err := d.Start(ctx); err != nil {
+		panic(err)
+	}
 
-  sigC := make(chan os.Signal, 1)
-  signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
-  <-sigC
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+	<-sigC
 
-  shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-  defer shutdownCancel()
-  _ = d.Stop(shutdownCtx)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	_ = d.Stop(shutdownCtx)
 }

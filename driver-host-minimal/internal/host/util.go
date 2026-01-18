@@ -19,4 +19,5 @@ func (s *StdLogger) Warn(msg string, kv ...any)  { s.l.Println(append([]any{"WAR
 func (s *StdLogger) Error(msg string, kv ...any) { s.l.Println(append([]any{"ERROR", msg}, kv...)...) }
 
 type SystemClock struct{}
+
 func (SystemClock) Now() time.Time { return time.Now() }

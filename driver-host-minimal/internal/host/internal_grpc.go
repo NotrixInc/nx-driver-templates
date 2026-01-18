@@ -20,16 +20,21 @@ import (
 type InternalGRPCServer struct {
 	socketPath string
 
-	grpcServer *ghostrpc.Server
+	grpcServer *grpc.Server
 	listener   net.Listener
 
 	hubsMu sync.RWMutex
 	hubs   map[string]*hubSession // hubDeviceID -> session
+
+	// In the current minimal templates, hubs do not send an explicit registration
+	// message on session open. We therefore accept a connection as "unassigned" and
+	// bind it to the first HubDeviceId seen in a proxied request.
+	unassigned []*hubSession
 }
 
 type hubSession struct {
 	hubDeviceID string
-	stream hostrpc.HubGatewayService_OpenHubSessionServer
+	stream      hostrpc.HubGatewayService_OpenHubSessionServer
 
 	// correlation_id -> response channel
 	pendingMu sync.Mutex
@@ -55,7 +60,7 @@ func (s *InternalGRPCServer) Start() error {
 		return err
 	}
 	s.listener = lis
-	s.grpcServer = ghostrpc.NewServer()
+	s.grpcServer = grpc.NewServer()
 
 	hostrpc.RegisterHostProxyServiceServer(s.grpcServer, &hostProxyService{server: s})
 	hostrpc.RegisterHubGatewayServiceServer(s.grpcServer, &hubGatewayService{server: s})
@@ -76,22 +81,49 @@ func (s *InternalGRPCServer) Stop() {
 	_ = os.Remove(s.socketPath)
 }
 
-func (s *InternalGRPCServer) registerHubSession(hubDeviceID string, stream hostrpc.HubGatewayService_OpenHubSessionServer) *hubSession {
+func (s *InternalGRPCServer) registerUnassignedHubSession(stream hostrpc.HubGatewayService_OpenHubSessionServer) *hubSession {
 	hs := &hubSession{
-		hubDeviceID: hubDeviceID,
+		hubDeviceID: "",
 		stream:      stream,
 		pending:     map[string]chan *hostrpc.ProxyCommandResponse{},
 	}
 	s.hubsMu.Lock()
-	s.hubs[hubDeviceID] = hs
+	s.unassigned = append(s.unassigned, hs)
 	s.hubsMu.Unlock()
 	return hs
 }
 
-func (s *InternalGRPCServer) unregisterHubSession(hubDeviceID string) {
+func (s *InternalGRPCServer) unregisterHubSession(hs *hubSession) {
 	s.hubsMu.Lock()
-	delete(s.hubs, hubDeviceID)
+	if hs.hubDeviceID != "" {
+		delete(s.hubs, hs.hubDeviceID)
+		s.hubsMu.Unlock()
+		return
+	}
+	// Still unassigned: remove by pointer match.
+	for i := range s.unassigned {
+		if s.unassigned[i] == hs {
+			s.unassigned = append(s.unassigned[:i], s.unassigned[i+1:]...)
+			break
+		}
+	}
 	s.hubsMu.Unlock()
+}
+
+func (s *InternalGRPCServer) bindHubSession(hubDeviceID string) (*hubSession, bool) {
+	s.hubsMu.Lock()
+	defer s.hubsMu.Unlock()
+	if hs, ok := s.hubs[hubDeviceID]; ok {
+		return hs, true
+	}
+	if len(s.unassigned) != 1 {
+		return nil, false
+	}
+	hs := s.unassigned[0]
+	s.unassigned = nil
+	hs.hubDeviceID = hubDeviceID
+	s.hubs[hubDeviceID] = hs
+	return hs, true
 }
 
 func (s *InternalGRPCServer) getHub(hubDeviceID string) (*hubSession, bool) {
@@ -104,6 +136,12 @@ func (s *InternalGRPCServer) getHub(hubDeviceID string) (*hubSession, bool) {
 // Called by HostProxyService to route a command to a hub session and await response.
 func (s *InternalGRPCServer) proxyToHub(ctx context.Context, req *hostrpc.ProxyCommandRequest) (*hostrpc.ProxyCommandResponse, error) {
 	hs, ok := s.getHub(req.HubDeviceId)
+	if !ok {
+		if bound, ok2 := s.bindHubSession(req.HubDeviceId); ok2 {
+			hs = bound
+			ok = true
+		}
+	}
 	if !ok {
 		return &hostrpc.ProxyCommandResponse{Success: false, Message: "hub not connected", CorrelationId: req.CorrelationId}, errors.New("hub not connected")
 	}
@@ -176,20 +214,7 @@ type hubGatewayService struct {
 }
 
 func (g *hubGatewayService) OpenHubSession(stream hostrpc.HubGatewayService_OpenHubSessionServer) error {
-	// First message from hub MUST be a registration response (client->server stream):
-// The hub sends a ProxyCommandResponse with Kind="REGISTER" and HubDeviceId set.
-first, err := stream.Recv()
-if err != nil {
-    return err
-}
-if first.Kind != "REGISTER" || first.HubDeviceId == "" {
-    return errors.New("hub must register first: ProxyCommandResponse{Kind:'REGISTER', HubDeviceId:<uuid>}")
-}
-
-hs := g.server.registerHubSession(first.HubDeviceId, stream)
-defer g.server.unregisterHubSession(first.HubDeviceId)
-
-// Start receiver loop to accept responses from hub.
- to accept responses from hub.
+	hs := g.server.registerUnassignedHubSession(stream)
+	defer g.server.unregisterHubSession(hs)
 	return hs.recvLoop(context.Background())
 }

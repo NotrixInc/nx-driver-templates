@@ -1,12 +1,12 @@
 package driver
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
-	"bytes"
 )
 
 type Client struct {
@@ -22,7 +22,7 @@ func NewClient(ip string, port int, token string) *Client {
 	return &Client{
 		baseURL: fmt.Sprintf("http://%s:%d", ip, port),
 		token:   token,
-		http:   &http.Client{Timeout: 5 * time.Second},
+		http:    &http.Client{Timeout: 5 * time.Second},
 	}
 }
 

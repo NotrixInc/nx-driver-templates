@@ -3,8 +3,11 @@
     {
       "id": "permit_join",
       "name": "Permit Join",
-      "direction": "BIDIR",
-      "type": "toggle",
+      "direction": "Output",
+      "type": "Control",
+      "connection": "IP",
+      "icon": "ip",
+      "multi_binding": false,
       "value_schema": { "type": "boolean" }
     }
   ]
