@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "type": "OVER_TEMPERATURE",
+      "name": "Over Temperature",
+      "description": "The dimmer reported an over-temperature condition.",
+      "severity": "ERROR"
+    }
+  ]
+}

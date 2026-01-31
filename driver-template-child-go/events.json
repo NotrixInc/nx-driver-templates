@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "type": "PAIRING_REQUIRED",
+      "name": "Pairing Required",
+      "description": "Emitted when the child device requires pairing or authorization.",
+      "severity": "WARN"
+    }
+  ]
+}

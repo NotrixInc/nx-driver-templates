@@ -1,0 +1,6 @@
+{
+  "variables": [
+    { "key": "brightness", "type": "Integer", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100 },
+    { "key": "power", "type": "Boolean", "unit": "", "readable": true, "writable": true }
+  ]
+}

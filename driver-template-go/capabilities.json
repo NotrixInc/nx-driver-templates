@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "driver_id": "com.example.template.ip-device",
+  "name": "Example IP Device Driver",
+  "version": "1.0.0",
+  "driver_type": "DEVICE",
+  "supports": {
+    "endpoints": true,
+    "variables": true,
+    "events": true,
+    "discovery": false
+  },
+  "features": {
+    "control": ["power"],
+    "protocols": ["IP"],
+    "topologies": ["DIRECT_IP"]
+  }
+}

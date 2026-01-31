@@ -1,0 +1,14 @@
+{
+  "id": "com.notrix.vort.dcdimmer",
+  "name": "Notrix Vort DC Dimmer Driver",
+  "version": "0.2.0",
+  "driver_type": "DEVICE",
+  "device_types": ["DC_Dimmer"],
+  "capabilities": ["dimming", "telemetry"],
+  "supported_topologies": ["DIRECT_IP"],
+  "protocols": ["IP"],
+  "entrypoint": {
+    "runtime": "go",
+    "path": "bin/driver"
+  }
+}

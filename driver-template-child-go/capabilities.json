@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "driver_id": "com.example.template.child",
+  "name": "Example Child Driver",
+  "version": "1.0.0",
+  "driver_type": "CHILD",
+  "supports": {
+    "endpoints": true,
+    "variables": true,
+    "events": true,
+    "bind_hub": true
+  }
+}

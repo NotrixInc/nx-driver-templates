@@ -1,0 +1,54 @@
+{
+  "variables": [
+    { "key": "ch1", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+    { "key": "ch2", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+    { "key": "ch3", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+    { "key": "ch4", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+    { "key": "ch5", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+    { "key": "ch6", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+    { "key": "ch7", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+    { "key": "ch8", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+    { "key": "ch9", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+    { "key": "ch10", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100, "step": 1 },
+
+    { "key": "device_name", "type": "Text", "unit": "", "readable": true, "writable": false },
+    { "key": "model_name", "type": "Text", "unit": "", "readable": true, "writable": false },
+    { "key": "firmware_version", "type": "Text", "unit": "", "readable": true, "writable": false },
+
+    { "key": "input_voltage_1", "type": "Number", "unit": "V", "readable": true, "writable": false },
+    { "key": "input_voltage_2", "type": "Number", "unit": "V", "readable": true, "writable": false },
+
+    { "key": "current_ch1", "type": "Number", "unit": "A", "readable": true, "writable": false },
+    { "key": "current_ch2", "type": "Number", "unit": "A", "readable": true, "writable": false },
+    { "key": "current_ch3", "type": "Number", "unit": "A", "readable": true, "writable": false },
+    { "key": "current_ch4", "type": "Number", "unit": "A", "readable": true, "writable": false },
+    { "key": "current_ch5", "type": "Number", "unit": "A", "readable": true, "writable": false },
+    { "key": "current_ch6", "type": "Number", "unit": "A", "readable": true, "writable": false },
+    { "key": "current_ch7", "type": "Number", "unit": "A", "readable": true, "writable": false },
+    { "key": "current_ch8", "type": "Number", "unit": "A", "readable": true, "writable": false },
+    { "key": "current_ch9", "type": "Number", "unit": "A", "readable": true, "writable": false },
+    { "key": "current_ch10", "type": "Number", "unit": "A", "readable": true, "writable": false },
+
+    { "key": "energy_ch1_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch2_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch3_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch4_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch5_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch6_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch7_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch8_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch9_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch10_today", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+
+    { "key": "energy_ch1_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch2_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch3_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch4_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch5_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch6_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch7_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch8_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch9_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false },
+    { "key": "energy_ch10_total", "type": "Number", "unit": "Wh", "readable": true, "writable": false }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "endpoints": [
+    {
+      "id": "ch1",
+      "name": "Channel 1",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "ch2",
+      "name": "Channel 2",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "ch3",
+      "name": "Channel 3",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "ch4",
+      "name": "Channel 4",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "ch5",
+      "name": "Channel 5",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "ch6",
+      "name": "Channel 6",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "ch7",
+      "name": "Channel 7",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "ch8",
+      "name": "Channel 8",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "ch9",
+      "name": "Channel 9",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "ch10",
+      "name": "Channel 10",
+      "direction": "Input",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "ip",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    }
+  ]
+}

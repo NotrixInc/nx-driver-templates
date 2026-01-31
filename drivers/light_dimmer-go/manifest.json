@@ -1,0 +1,12 @@
+{
+  "id": "light_dimmer",
+  "name": "Light Dimmer",
+  "version": "0.2.0",
+  "driver_type": "DEVICE",
+  "device_types": ["Light"],
+  "capabilities": ["dimming", "scene_support", "on-off"],
+  "entrypoint": {
+    "runtime": "go",
+    "path": "bin/driver"
+  }
+}

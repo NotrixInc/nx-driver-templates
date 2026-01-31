@@ -1,0 +1,24 @@
+{
+  "endpoints": [
+    {
+      "id": "brightness",
+      "name": "Brightness",
+      "direction": "Output",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "light",
+      "multi_binding": true,
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    {
+      "id": "power",
+      "name": "Power",
+      "direction": "Output",
+      "type": "Control",
+      "connection": "DC_Dimmer",
+      "icon": "power",
+      "multi_binding": true,
+      "value_schema": { "type": "boolean" }
+    }
+  ]
+}

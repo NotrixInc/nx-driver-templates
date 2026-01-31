@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "driver_id": "light_dimmer",
+  "name": "Light Dimmer",
+  "driver_type": "UI",
+  "features": {
+    "dimmer": true,
+    "scene_support": true,
+    "on-off": true
+  },
+  "messaging": {
+    "supported": true,
+    "modes": ["unicast", "broadcast", "multicast"],
+    "message_types": {
+      "outbound": ["dimming.changed"],
+      "inbound": ["dimming.changed", "dimming.set", "power.set"]
+    },
+    "requires_binding": true
+  }
+}

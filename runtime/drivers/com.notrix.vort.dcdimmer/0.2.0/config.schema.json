@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "ip": { "type": "string", "description": "Device IP address" },
+    "port": { "type": "integer", "default": 80 },
+
+    "username": { "type": "string", "description": "HTTP basic auth username", "default": "Notrix" },
+    "password": { "type": "string", "description": "HTTP basic auth password", "default": "Notrix" },
+
+    "poll_interval_ms": { "type": "integer", "default": 2000, "minimum": 250 },
+    "channels": { "type": "integer", "default": 10, "minimum": 1, "maximum": 10 },
+
+    "mqtt_enable": { "type": "boolean", "default": false },
+    "mqtt_username": { "type": "string" },
+    "mqtt_password": { "type": "string" },
+    "mqtt_topic": { "type": "string" }
+  },
+  "required": ["ip"]
+}

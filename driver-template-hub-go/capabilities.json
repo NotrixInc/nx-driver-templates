@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "driver_id": "com.example.template.hub",
+  "name": "Example Hub Driver",
+  "version": "1.0.0",
+  "driver_type": "HUB",
+  "supports": {
+    "endpoints": true,
+    "variables": true,
+    "events": true,
+    "discovery": true,
+    "proxy_command": true
+  }
+}

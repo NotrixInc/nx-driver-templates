@@ -8,7 +8,7 @@ build:
 
 .PHONY: package
 package: build
-	tar -czf driver-package.tgz manifest.json config.schema.json endpoints.json variables.schema.json -C $(BIN_DIR) $(BIN_NAME)
+	tar -czf driver-package.tgz manifest.json config.schema.json endpoints.json variables.schema.json capabilities.json events.json -C $(BIN_DIR) $(BIN_NAME)
 
 .PHONY: clean
 clean:

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "type": "CHILD_DISCOVERED",
+      "name": "Child Discovered",
+      "description": "Emitted when the hub discovers a child device.",
+      "severity": "INFO",
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "child_ref": { "type": "string" },
+          "model": { "type": "string" }
+        },
+        "required": ["child_ref"]
+      }
+    }
+  ]
+}

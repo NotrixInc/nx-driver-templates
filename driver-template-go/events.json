@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "type": "DEVICE_ONLINE",
+      "name": "Device Online",
+      "description": "Emitted when the device is reachable/online.",
+      "severity": "INFO",
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "ip": { "type": "string" },
+          "at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["at"]
+      }
+    }
+  ]
+}
