@@ -1,0 +1,12 @@
+{
+  "id": "light_cct",
+  "name": "Light CCT",
+  "version": "0.1.3",
+  "driver_type": "UI",
+  "device_types": ["Light"],
+  "capabilities": ["cct", "dimmer", "on-off", "scene_support"],
+  "entrypoint": {
+    "runtime": "go",
+    "path": "bin/driver"
+  }
+}

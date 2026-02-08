@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "type": "BRIGHTNESS_CHANGED",
+      "name": "Brightness Changed",
+      "description": "Emitted when brightness is changed via the driver.",
+      "severity": "INFO",
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "brightness": { "type": "number", "minimum": 0, "maximum": 100 },
+          "source": { "type": "string" }
+        },
+        "required": ["brightness"]
+      }
+    }
+  ]
+}

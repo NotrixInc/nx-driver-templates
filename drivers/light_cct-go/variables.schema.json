@@ -1,0 +1,7 @@
+{
+  "variables": [
+    { "key": "brightness", "type": "Number", "unit": "%", "readable": true, "writable": true, "minimum": 0, "maximum": 100 },
+    { "key": "power", "type": "Boolean", "unit": "", "readable": true, "writable": true },
+    { "key": "cct", "type": "Number", "unit": "K", "readable": true, "writable": true, "minimum": 2700, "maximum": 6500 }
+  ]
+}

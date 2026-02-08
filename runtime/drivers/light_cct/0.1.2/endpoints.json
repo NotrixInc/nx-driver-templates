@@ -1,8 +1,8 @@
 {
   "endpoints": [
     {
-      "id": "brightness",
-      "name": "Brightness",
+      "id": "warm_white",
+      "name": "Warm White",
       "direction": "Output",
       "type": "Control",
       "connection": "DC_Dimmer",
@@ -10,13 +10,13 @@
       "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
     },
     {
-      "id": "power",
-      "name": "Power",
+      "id": "cool_white",
+      "name": "Cool White",
       "direction": "Output",
       "type": "Control",
       "connection": "DC_Dimmer",
       "multi_binding": true,
-      "value_schema": { "type": "boolean" }
+      "value_schema": { "type": "number", "minimum": 0, "maximum": 100 }
     }
   ]
 }

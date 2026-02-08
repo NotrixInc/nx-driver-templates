@@ -1,7 +1,7 @@
 {
   "id": "light_dimmer",
   "name": "Light Dimmer",
-  "version": "0.2.4",
+  "version": "0.2.3",
   "driver_type": "UI",
   "device_types": ["Light"],
   "capabilities": ["dimming", "scene_support", "on-off"],

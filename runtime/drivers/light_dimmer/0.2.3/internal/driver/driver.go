@@ -19,7 +19,7 @@ import (
 
 const (
 	driverID      = "light_dimmer"
-	driverVersion = "0.2.4"
+	driverVersion = "0.2.3"
 )
 
 type LightDimmerDriver struct {
@@ -238,9 +238,18 @@ func (d *LightDimmerDriver) registerMessageHandlers() {
 		return d.handlePowerMessage(msg, payload)
 	})
 
-	// Handler for scene_apply messages from controller-core using SDK support
-	sceneSupport := driversdk.NewSceneSupport(d.deviceID, d.deps.Logger, d)
-	sceneSupport.RegisterSceneHandlers(d.msgBus)
+	// Handler for scene_apply messages from controller-core
+	// Scene messages from controller-core are always authorized (source = "controller-core")
+	d.msgBus.RegisterHandlerFunc("scene_apply", func(ctx context.Context, msg driversdk.BusMessage) error {
+		// Controller-core scene messages are always authorized
+		if msg.SourceDriver != "controller-core" {
+			if d.deps.Logger != nil {
+				d.deps.Logger.Debug("scene_apply from non-controller source rejected", "source", msg.SourceDriver)
+			}
+			return nil
+		}
+		return d.handleSceneApplyMessage(msg)
+	})
 }
 
 // isAuthorizedSource checks if the source driver is authorized to send messages to us
@@ -366,14 +375,41 @@ func (d *LightDimmerDriver) handlePowerMessage(msg driversdk.BusMessage, payload
 	return nil
 }
 
-// HandleSceneApply implements driversdk.SceneHandler interface
-func (d *LightDimmerDriver) HandleSceneApply(ctx context.Context, payload driversdk.SceneApplyPayload) error {
-	if d.deps.Logger != nil {
-		d.deps.Logger.Info("applying scene", "scene_id", payload.SceneID, "device_id", payload.DeviceID, "brightness", payload.Brightness, "on", payload.On)
+// SceneApplyPayload is the payload for scene_apply messages from controller-core
+type SceneApplyPayload struct {
+	DeviceID   string   `json:"device_id"`
+	SceneID    string   `json:"scene_id,omitempty"`
+	Brightness *float64 `json:"brightness,omitempty"`
+	On         *bool    `json:"on,omitempty"`
+	Power      *bool    `json:"power,omitempty"`
+}
+
+// handleSceneApplyMessage processes scene_apply messages from controller-core
+func (d *LightDimmerDriver) handleSceneApplyMessage(msg driversdk.BusMessage) error {
+	var payload SceneApplyPayload
+	if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+		if d.deps.Logger != nil {
+			d.deps.Logger.Error("failed to parse scene_apply payload", "error", err)
+		}
+		return err
 	}
 
-	// Determine power state using SDK helper
-	powerOn := payload.IsPowerOn()
+	// Check if this message is for our device
+	if payload.DeviceID != "" && !strings.EqualFold(strings.TrimSpace(payload.DeviceID), strings.TrimSpace(d.deviceID)) {
+		return nil
+	}
+
+	if d.deps.Logger != nil {
+		d.deps.Logger.Info("applying scene", "scene_id", msg.CorrelationID, "device_id", payload.DeviceID, "brightness", payload.Brightness, "on", payload.On)
+	}
+
+	// Determine power state
+	powerOn := true
+	if payload.On != nil {
+		powerOn = *payload.On
+	} else if payload.Power != nil {
+		powerOn = *payload.Power
+	}
 
 	// If power is off, set brightness to 0
 	if !powerOn {

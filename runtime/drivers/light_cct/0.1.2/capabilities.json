@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "driver_id": "light_cct",
+  "name": "Light CCT",
+  "driver_type": "UI",
+  "features": {
+    "dimmer": true,
+    "on-off": true,
+    "cct": true,
+    "scene_support": true
+  },
+  "messaging": {
+    "supported": true,
+    "modes": ["unicast", "broadcast", "multicast"],
+    "message_types": {
+      "outbound": [],
+      "inbound": []
+    },
+    "requires_binding": true
+  }
+}
