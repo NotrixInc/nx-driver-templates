@@ -1,0 +1,6 @@
+{
+  "variables": [
+    { "key": "snapshot", "type": "Image", "unit": "", "readable": true, "writable": false },
+    { "key": "stream_url", "type": "Video", "unit": "", "readable": true, "writable": false }
+  ]
+}

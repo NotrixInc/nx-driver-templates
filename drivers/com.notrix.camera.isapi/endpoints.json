@@ -1,0 +1,30 @@
+{
+  "endpoints": [
+    {
+      "id": "get_snapshot",
+      "name": "Get Snapshot",
+      "direction": "Output",
+      "type": "Control",
+      "connection": "IP",
+      "icon": "ip",
+      "multi_binding": false,
+      "value_schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "id": "get_stream_url",
+      "name": "Get Stream URL",
+      "direction": "Output",
+      "type": "Control",
+      "connection": "IP",
+      "icon": "ip",
+      "multi_binding": false,
+      "value_schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

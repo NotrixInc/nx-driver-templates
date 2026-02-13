@@ -1,0 +1,11 @@
+{
+  "ip": "192.168.1.100",
+  "snapshot_port": 80,
+  "stream_port": 554,
+  "username": "admin",
+  "password": "password",
+  "auth_type": "basic",
+  "snapshot_resolution": "640x480",
+  "embed_credentials_in_rtsp_url": false,
+  "request_timeout_seconds": 8
+}

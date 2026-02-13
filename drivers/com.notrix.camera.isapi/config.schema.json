@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "ip": { "type": "string", "description": "Camera IP or hostname" },
+    "snapshot_port": { "type": "integer", "default": 80, "minimum": 1, "maximum": 65535, "description": "HTTP port for snapshot requests" },
+    "stream_port": { "type": "integer", "default": 554, "minimum": 1, "maximum": 65535, "description": "RTSP port for video streaming" },
+    "channel_number": { "type": "integer", "title": "Channel Number", "default": 1, "minimum": 1, "maximum": 64, "description": "Camera channel number (the first digit in 101/102)" },
+    "stream_type": { "type": "string", "title": "Stream Type", "enum": ["main", "sub"], "default": "sub", "description": "RTSP stream type: main (..01) or sub (..02)" },
+    "username": { "type": "string", "description": "Camera username" },
+    "password": { "type": "string", "description": "Camera password" },
+    "auth_type": { "type": "string", "enum": ["basic", "digest"], "default": "basic", "description": "Authentication type (basic or digest)" },
+    "snapshot_resolution": { "type": "string", "default": "640x480", "description": "Snapshot resolution query value (e.g. 640x480)" },
+    "snapshot_refresh_ms": { "type": "integer", "default": 1000, "minimum": 250, "maximum": 10000, "description": "Snapshot refresh interval in milliseconds for live preview publishing" },
+    "embed_credentials_in_rtsp_url": { "type": "boolean", "default": false, "description": "If true, returns an RTSP URL with credentials embedded (rtsp://user:pass@...)" },
+    "request_timeout_seconds": { "type": "integer", "default": 8, "minimum": 1, "maximum": 60 }
+  },
+  "required": ["ip", "username", "password"]
+}
