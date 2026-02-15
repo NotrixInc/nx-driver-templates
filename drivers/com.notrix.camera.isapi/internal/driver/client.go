@@ -58,6 +58,22 @@ func NewClient(cfg Config) *Client {
 	if authType == "" {
 		authType = "basic"
 	}
+
+	timeout := time.Duration(toSec) * time.Second
+
+	// Custom transport: shorter dial timeout so unreachable NVR/cameras
+	// fail fast instead of blocking the full request timeout.
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   3 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          4,
+		MaxIdleConnsPerHost:   2,
+		IdleConnTimeout:       30 * time.Second,
+		ResponseHeaderTimeout: timeout,
+	}
+
 	return &Client{
 		ip:             strings.TrimSpace(cfg.IP),
 		snapshotPort:   snapshotPort,
@@ -68,8 +84,8 @@ func NewClient(cfg Config) *Client {
 		password:       cfg.Password,
 		authType:       authType,
 		snapshotRes:    res,
-		requestTimeout: time.Duration(toSec) * time.Second,
-		http:           &http.Client{Timeout: time.Duration(toSec) * time.Second},
+		requestTimeout: timeout,
+		http:           &http.Client{Timeout: timeout, Transport: transport},
 	}
 }
 
@@ -108,8 +124,9 @@ func (c *Client) rtspChannelCode() int {
 }
 
 func (c *Client) FetchSnapshot(ctx context.Context) ([]byte, string, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
-	defer cancel()
+	// Use the caller-provided context directly; it already carries the
+	// appropriate deadline from publishSnapshot. Adding a second timeout
+	// here used to double the maximum wait time.
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.SnapshotURL(), nil)
 	if err != nil {

@@ -1,0 +1,14 @@
+{
+  "id": "com.notrix.w2io",
+  "name": "W2IO Gas/IO Device Driver",
+  "version": "0.1.0",
+  "driver_type": "DEVICE",
+  "device_types": ["Sensor"],
+  "capabilities": ["telemetry", "gas-sensor", "relay-control", "network-status"],
+  "supported_topologies": ["DIRECT_IP"],
+  "protocols": ["IP"],
+  "entrypoint": {
+    "runtime": "go",
+    "path": "bin/driver.exe"
+  }
+}

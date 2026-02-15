@@ -6,10 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	driversdk "github.com/NotrixInc/nx-driver-sdk"
 )
+
+// maxSnapshotBase64Bytes caps the base64 payload size published via telemetry.
+// Images larger than this are published as URL-only to avoid bloating the DB.
+const maxSnapshotBase64Bytes = 512 * 1024 // 512 KB
 
 type ISAPICameraDriver struct {
 	deviceID string
@@ -17,6 +22,11 @@ type ISAPICameraDriver struct {
 	cfg      Config
 	client   *Client
 	stopCh   chan struct{}
+
+	// Backoff tracking for snapshot failures.
+	mu                  sync.Mutex
+	consecutiveFailures int
+	lastSnapshotOK      bool
 }
 
 func NewISAPICameraDriver(deviceID string) *ISAPICameraDriver {
@@ -159,12 +169,18 @@ func (d *ISAPICameraDriver) Start(ctx context.Context) error {
 		At:       d.deps.Clock.Now(),
 	})
 
-	_ = d.publishSnapshot(ctx)
+	// Don't block Start() with a potentially slow snapshot fetch —
+	// let the background goroutine handle the first attempt too.
 
 	d.stopCh = make(chan struct{})
 	go func() {
-		ticker := time.NewTicker(time.Duration(d.cfg.SnapshotRefreshMs) * time.Millisecond)
+		baseInterval := time.Duration(d.cfg.SnapshotRefreshMs) * time.Millisecond
+		currentInterval := baseInterval
+		ticker := time.NewTicker(currentInterval)
 		defer ticker.Stop()
+
+		// Fetch immediately on goroutine start.
+		d.doSnapshotWithBackoff(ctx, ticker, &currentInterval, baseInterval)
 
 		for {
 			select {
@@ -173,12 +189,50 @@ func (d *ISAPICameraDriver) Start(ctx context.Context) error {
 			case <-d.stopCh:
 				return
 			case <-ticker.C:
-				_ = d.publishSnapshot(ctx)
+				d.doSnapshotWithBackoff(ctx, ticker, &currentInterval, baseInterval)
 			}
 		}
 	}()
 
 	return nil
+}
+
+// doSnapshotWithBackoff fetches a snapshot and adjusts the ticker interval
+// using exponential backoff on consecutive failures.
+func (d *ISAPICameraDriver) doSnapshotWithBackoff(ctx context.Context, ticker *time.Ticker, current *time.Duration, base time.Duration) {
+	err := d.publishSnapshot(ctx)
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if err != nil {
+		d.consecutiveFailures++
+		d.lastSnapshotOK = false
+
+		// Exponential backoff: double interval, capped at 60s.
+		shift := d.consecutiveFailures
+		if shift > 6 {
+			shift = 6 // max 64× base
+		}
+		newInterval := base * time.Duration(1<<shift)
+		maxInterval := 60 * time.Second
+		if newInterval > maxInterval {
+			newInterval = maxInterval
+		}
+		if newInterval != *current {
+			*current = newInterval
+			ticker.Reset(newInterval)
+			d.deps.Logger.Info("snapshot backoff", "interval", newInterval.String(), "failures", d.consecutiveFailures)
+		}
+	} else {
+		if d.consecutiveFailures > 0 {
+			d.consecutiveFailures = 0
+			*current = base
+			ticker.Reset(base)
+			d.deps.Logger.Info("snapshot recovered, reset interval", "interval", base.String())
+		}
+		d.lastSnapshotOK = true
+	}
 }
 
 func (d *ISAPICameraDriver) publishSnapshot(ctx context.Context) error {
@@ -196,9 +250,19 @@ func (d *ISAPICameraDriver) publishSnapshot(ctx context.Context) error {
 
 	payload := map[string]any{
 		"mime":         ct,
-		"bytes_base64": base64.StdEncoding.EncodeToString(b),
 		"snapshot_url": d.client.SnapshotURL(),
 	}
+
+	// Only include base64 data if it's within a reasonable size.
+	// Large payloads bloat meta_json and slow down DB read/writes.
+	encoded := base64.StdEncoding.EncodeToString(b)
+	if len(encoded) <= maxSnapshotBase64Bytes {
+		payload["bytes_base64"] = encoded
+	} else {
+		d.deps.Logger.Warn("snapshot too large for inline base64, publishing URL only",
+			"size_bytes", len(b), "base64_len", len(encoded))
+	}
+
 	data, _ := json.Marshal(payload)
 	_ = d.deps.Publisher.PublishVariable(ctx, driversdk.VariableUpdate{
 		DeviceID: d.deviceID,
@@ -255,7 +319,21 @@ func (d *ISAPICameraDriver) HandleCommand(ctx context.Context, cmd driversdk.Com
 }
 
 func (d *ISAPICameraDriver) Health(ctx context.Context) (driversdk.HealthStatus, map[string]string) {
-	return driversdk.HealthOK, map[string]string{"ip": d.cfg.IP}
+	d.mu.Lock()
+	failures := d.consecutiveFailures
+	d.mu.Unlock()
+
+	info := map[string]string{"ip": d.cfg.IP}
+	if failures >= 5 {
+		info["snapshot_status"] = "failing"
+		info["consecutive_failures"] = fmt.Sprintf("%d", failures)
+		return driversdk.HealthDegraded, info
+	}
+	if failures > 0 {
+		info["snapshot_status"] = "retrying"
+		info["consecutive_failures"] = fmt.Sprintf("%d", failures)
+	}
+	return driversdk.HealthOK, info
 }
 
 func (d *ISAPICameraDriver) Stop(ctx context.Context) error {

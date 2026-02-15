@@ -1,0 +1,34 @@
+{
+  "endpoints": [
+    {
+      "id": "refresh_status",
+      "name": "Refresh Status",
+      "direction": "Output",
+      "type": "Control",
+      "connection": "IP",
+      "icon": "refresh",
+      "multi_binding": false,
+      "value_schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "id": "set_value",
+      "name": "Set Device Value",
+      "direction": "Output",
+      "type": "Control",
+      "connection": "IP",
+      "icon": "ip",
+      "multi_binding": false,
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string" },
+          "value": {}
+        },
+        "required": ["key", "value"]
+      }
+    }
+  ]
+}
