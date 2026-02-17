@@ -94,7 +94,7 @@ func (c *Client) SnapshotURL() string {
 	u := url.URL{
 		Scheme: "http",
 		Host:   host,
-		Path:   fmt.Sprintf("/ISAPI/Streaming/channels/%d/picture", c.rtspChannelCode()),
+		Path:   fmt.Sprintf("/ISAPI/Streaming/channels/%d/picture", c.channelNumber),
 	}
 	q := u.Query()
 	q.Set("resolution", c.snapshotRes)
