@@ -42,6 +42,11 @@ type VortDCDimmerDriver struct {
 	msgClient *driversdk.DriverMessageClient
 	msgAfter  int64
 
+	// epBus receives endpoint-addressed batches. Core resolves the wiring and
+	// tells us which of our own channels was addressed, so nothing here has to
+	// work out an address from the payload.
+	epBus *driversdk.EndpointBus
+
 	bindingsMu            sync.Mutex
 	bindingsAt            time.Time
 	bindingsByTargetEpKey map[string][]bindingSource
@@ -127,6 +132,10 @@ func (d *VortDCDimmerDriver) Endpoints() ([]driversdk.Endpoint, error) {
 			MultiBinding: true,
 			ControlType:  "dimmer",
 			ValueSchema:  valueSchema,
+			// A channel takes a level, which is a value: whatever arrives last
+			// is the whole truth. Declaring it lets the controller collapse a
+			// pending step of a ramp instead of writing every one to hardware.
+			CommandClass: driversdk.CommandAbsolute,
 			Meta:         map[string]string{"channel": fmt.Sprintf("%d", ch)},
 		})
 	}
@@ -219,13 +228,142 @@ func (d *VortDCDimmerDriver) Start(ctx context.Context) error {
 	d.wg.Add(1)
 	go d.controlLoop()
 
-	// Listen for driver-to-driver messages (strict allow-list is enforced by controller-core).
+	// Endpoint-addressed delivery: declare what we expose, then receive batches
+	// already addressed to our channels.
+	if err := d.startEndpointBus(ctx); err != nil && d.deps.Logger != nil {
+		d.deps.Logger.Warn("endpoint bus unavailable", "err", err.Error())
+	}
+
+	// Legacy driver-addressed bus, kept until every peer is ported.
 	d.msgClient = driversdk.NewDriverMessageClientFromEnv()
 	d.fastForwardDriverMessages()
 	d.wg.Add(1)
 	go d.messageLoop()
 
 	return nil
+}
+
+// startEndpointBus publishes this driver's endpoint set and subscribes to
+// batches addressed to it.
+func (d *VortDCDimmerDriver) startEndpointBus(ctx context.Context) error {
+	bus, err := driversdk.NewEndpointBusFromEnv(d.deviceID, d.deps.Logger)
+	if err != nil {
+		return err
+	}
+
+	eps, err := d.Endpoints()
+	if err != nil {
+		return err
+	}
+	specs := make([]driversdk.EndpointSpec, 0, len(eps))
+	for _, ep := range eps {
+		multi := ep.MultiBinding
+		specs = append(specs, driversdk.EndpointSpec{
+			Key:          ep.Key,
+			Name:         ep.Name,
+			Direction:    string(ep.Direction),
+			Class:        string(ep.Connection),
+			Type:         string(ep.Kind),
+			MultiBinding: &multi,
+			ValueType:    "NUMBER",
+			CommandClass: ep.CommandClass,
+			Meta:         ep.Meta,
+		})
+	}
+	if err := bus.DeclareEndpoints(ctx, specs); err != nil {
+		return err
+	}
+
+	bus.OnEndpointBatch(d.handleEndpointBatch)
+
+	// This driver only receives today, so a refusal here means something the
+	// controller rejected on our behalf. Logging it beats discarding it: an
+	// installer chasing a channel that never moves needs to see the reason.
+	bus.OnRefusal(func(_ context.Context, r driversdk.Refusal) {
+		if d.deps.Logger == nil {
+			return
+		}
+		d.deps.Logger.Warn("endpoint publish refused",
+			"reason", r.Reason, "detail", r.Detail, "endpoint", r.SourceKey)
+	})
+
+	if err := bus.Start(ctx); err != nil {
+		return err
+	}
+
+	d.epBus = bus
+	return nil
+}
+
+// handleEndpointBatch applies one delivery. Every item names a channel endpoint
+// of this device, resolved by core from the binding the installer drew, so there
+// is no channel to guess and no "apply to every channel" fallback.
+//
+// The whole batch arrives at once, which is why this needs no coalescing window:
+// a light driving three of our channels produces one call here, not three.
+//
+// Follow-up worth doing on hardware: collapse the per-channel writes below into
+// a single /api/allDimValues PUT. Note the firmware's CSV swaps the channel
+// halves on the 10-channel layout (positions 1-5 address channels 6-10), so that
+// change needs a device to verify against.
+func (d *VortDCDimmerDriver) handleEndpointBatch(ctx context.Context, batch driversdk.EndpointBatch) error {
+	if batch.Kind != driversdk.KindCommand {
+		return nil
+	}
+
+	var firstErr error
+	for i := range batch.Items {
+		item := &batch.Items[i]
+
+		ch, ok := d.channelForEndpointKey(item.EndpointKey)
+		if !ok {
+			if d.deps.Logger != nil {
+				d.deps.Logger.Warn("batch item for an unknown endpoint", "endpoint", item.EndpointKey)
+			}
+			continue
+		}
+
+		params := item.Params()
+		var val float64
+		switch {
+		case params.Has("level"):
+			val = params.Float("level")
+		case params.Has("value"):
+			val = params.Float("value")
+		case params.Has("brightness"):
+			val = params.Float("brightness")
+		case params.Has("power"):
+			// An on/off command with no level: full on, or off.
+			if params.Bool("power") {
+				val = 100
+			}
+		default:
+			continue
+		}
+
+		if err := d.applyChannelBrightness(ch, clamp(val, 0, 100), driversdk.SourceDriver, batch.CorrelationID); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
+}
+
+// channelForEndpointKey maps one of our own endpoint keys to its physical
+// channel. Only this driver knows the mapping, which is the point: the sender
+// never sees a channel number.
+func (d *VortDCDimmerDriver) channelForEndpointKey(key string) (int, bool) {
+	m := chKeyRe.FindStringSubmatch(strings.TrimSpace(key))
+	if m == nil {
+		return 0, false
+	}
+	var ch int
+	if _, err := fmt.Sscanf(m[1], "%d", &ch); err != nil {
+		return 0, false
+	}
+	if ch < 1 || ch > 10 {
+		return 0, false
+	}
+	return ch, true
 }
 
 func (d *VortDCDimmerDriver) listBindings(ctx context.Context) ([]coreBinding, error) {

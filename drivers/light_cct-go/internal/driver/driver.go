@@ -40,6 +40,11 @@ type LightCCTDriver struct {
 	// MessageBus for driver-to-driver communication
 	msgBus *driversdk.MessageBus
 
+	// epBus carries the light's output to whatever the installer wired its warm
+	// and cool endpoints to. This driver never learns which module or channel
+	// that is.
+	epBus *driversdk.EndpointBus
+
 	wg       sync.WaitGroup
 	stopOnce sync.Once
 	stopCh   chan struct{}
@@ -110,6 +115,10 @@ func (d *LightCCTDriver) Endpoints() ([]driversdk.Endpoint, error) {
 			MultiBinding: true,
 			ControlType:  "dimmer",
 			ValueSchema:  valueSchema,
+			// A level is a value, not a step: whatever arrives last is the
+			// whole truth, so a stalled dimmer should wake to the current
+			// level rather than replay every step of a ramp it missed.
+			CommandClass: driversdk.CommandAbsolute,
 			Meta:         map[string]string{},
 		},
 		{
@@ -121,6 +130,7 @@ func (d *LightCCTDriver) Endpoints() ([]driversdk.Endpoint, error) {
 			MultiBinding: true,
 			ControlType:  "dimmer",
 			ValueSchema:  valueSchema,
+			CommandClass: driversdk.CommandAbsolute,
 			Meta:         map[string]string{},
 		},
 	}, nil
@@ -145,6 +155,11 @@ func (d *LightCCTDriver) Start(ctx context.Context) error {
 	// Register scene_apply handler using SDK support
 	sceneSupport := driversdk.NewSceneSupport(d.deviceID, d.deps.Logger, d)
 	sceneSupport.RegisterSceneHandlers(d.msgBus)
+
+	// Endpoint-addressed output.
+	if err := d.startEndpointBus(ctx); err != nil && d.deps.Logger != nil {
+		d.deps.Logger.Warn("endpoint bus unavailable", "err", err.Error())
+	}
 
 	// Start the message bus
 	if err := d.msgBus.Start(ctx); err != nil {
@@ -301,6 +316,12 @@ func (d *LightCCTDriver) applyDesiredCCT() error {
 	if err := d.setDesiredControlsInCore(nextControls, "USER"); err != nil {
 		return err
 	}
+
+	// Drive whatever is bound to our two endpoints. Warm and cool carry
+	// different levels, so they go out as one call with per-endpoint arguments:
+	// core still groups them per target device, so a module holding both
+	// channels gets a single batch.
+	d.sendLevels(context.Background(), warmPct, coolPct)
 
 	// Publish variables for UI visibility (best-effort)
 	_ = d.publishCCT(cctVal)
@@ -568,4 +589,116 @@ func coerceNumber(v any) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// startEndpointBus declares this driver's endpoints and opens the endpoint bus.
+func (d *LightCCTDriver) startEndpointBus(ctx context.Context) error {
+	bus, err := driversdk.NewEndpointBusFromEnv(d.deviceID, d.deps.Logger)
+	if err != nil {
+		return err
+	}
+
+	eps, err := d.Endpoints()
+	if err != nil {
+		return err
+	}
+	specs := make([]driversdk.EndpointSpec, 0, len(eps))
+	for _, ep := range eps {
+		multi := ep.MultiBinding
+		specs = append(specs, driversdk.EndpointSpec{
+			Key:          ep.Key,
+			Name:         ep.Name,
+			Direction:    string(ep.Direction),
+			Class:        string(ep.Connection),
+			Type:         string(ep.Kind),
+			MultiBinding: &multi,
+			ValueType:    "NUMBER",
+			// Declared once on the endpoint; the SDK stamps it on every send
+			// out of that endpoint so no call site has to remember it.
+			CommandClass: ep.CommandClass,
+			Meta:         ep.Meta,
+		})
+	}
+	if err := bus.DeclareEndpoints(ctx, specs); err != nil {
+		return err
+	}
+
+	// Status travels back along the same bindings, so the light can reflect what
+	// the hardware actually did rather than what it asked for.
+	bus.OnEndpointBatch(d.handleEndpointBatch)
+
+	// A refusal is not the same thing as a command that went nowhere. Without
+	// this, a level that the wiring rejected — a loop, an exhausted hop budget
+	// — looks identical to one nobody has wired yet.
+	bus.OnRefusal(func(_ context.Context, r driversdk.Refusal) {
+		if d.deps.Logger == nil {
+			return
+		}
+		d.deps.Logger.Warn("send refused",
+			"reason", r.Reason, "detail", r.Detail, "endpoint", r.SourceKey)
+	})
+
+	if err := bus.Start(ctx); err != nil {
+		return err
+	}
+
+	d.epBus = bus
+	return nil
+}
+
+// sendLevels pushes the current warm and cool levels to whatever is bound.
+// An unbound endpoint is not an error: nothing is wired yet.
+//
+// parent carries the cause when this was prompted by something on the bus, so
+// the controller can extend that chain rather than start a new one. Today the
+// levels come from the control loop and the chain begins here, which is why
+// passing context.Background() is correct rather than lazy — but the parameter
+// is what keeps that true if the trigger ever moves.
+func (d *LightCCTDriver) sendLevels(parent context.Context, warmPct, coolPct float64) {
+	if d.epBus == nil {
+		return
+	}
+	if parent == nil {
+		parent = context.Background()
+	}
+
+	ctx, cancel := context.WithTimeout(parent, 750*time.Millisecond)
+	defer cancel()
+
+	res, err := d.epBus.SendPerEndpoint(ctx, "set_level", []driversdk.EndpointArgs{
+		{Key: "warm_white", Params: driversdk.Params{"level": warmPct}},
+		{Key: "cool_white", Params: driversdk.Params{"level": coolPct}},
+	})
+	if err != nil {
+		if d.deps.Logger != nil {
+			d.deps.Logger.Debug("send on endpoints failed", "err", err.Error())
+		}
+		return
+	}
+
+	// Endpoints nobody has wired yet are filtered out: that is a normal state
+	// on a part-commissioned job, not something to wake anyone over.
+	for _, refusal := range res.HardRefusals() {
+		if d.deps.Logger != nil {
+			d.deps.Logger.Warn("level refused",
+				"reason", refusal.Reason, "detail", refusal.Detail, "endpoint", refusal.SourceKey)
+		}
+	}
+}
+
+// handleEndpointBatch receives status reported back by whatever is bound.
+func (d *LightCCTDriver) handleEndpointBatch(ctx context.Context, batch driversdk.EndpointBatch) error {
+	if batch.Kind != driversdk.KindEvent {
+		return nil
+	}
+	for i := range batch.Items {
+		item := &batch.Items[i]
+		if d.deps.Logger != nil {
+			d.deps.Logger.Debug("bound endpoint reported",
+				"endpoint", item.EndpointKey,
+				"event", batch.Name,
+				"level", item.Params().Float("level"))
+		}
+	}
+	return nil
 }

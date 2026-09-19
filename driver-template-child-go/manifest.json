@@ -1,22 +1,29 @@
 {
+  "schema_version": 2,
   "id": "com.example.template.child.zigbee-dimmer",
   "name": "Example Child Driver (Zigbee Dimmer)",
   "version": "1.0.0",
+  "roles": {
+    "device": {
+      "topology": "CHILD",
+      "protocols": [
+        "ZIGBEE"
+      ],
+      "reachability": {
+        "mode": "PUSH",
+        "stale_after_ms": 60000
+      }
+    }
+  },
   "driver_type": "CHILD",
-  "supported_topologies": [
-    "VIA_HUB"
-  ],
-  "protocols": [
-    "ZIGBEE"
-  ],
+  "entrypoint": {
+    "runtime": "go",
+    "path": "bin/driver"
+  },
   "requires_hub": [
     {
       "hub_driver_id": "com.example.template.hub",
       "min_version": "1.0.0"
     }
-  ],
-  "entrypoint": {
-    "runtime": "go",
-    "path": "bin/driver"
-  }
+  ]
 }

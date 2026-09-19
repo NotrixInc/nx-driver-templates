@@ -9,6 +9,7 @@ require google.golang.org/grpc v1.66.0
 require github.com/NotrixInc/nx-driver-sdk v1.0.0
 
 require (
+	github.com/google/uuid v1.6.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
