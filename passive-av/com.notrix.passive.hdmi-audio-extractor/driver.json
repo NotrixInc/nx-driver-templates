@@ -1,0 +1,89 @@
+{
+  "schema_version": 2,
+  "id": "com.notrix.passive.hdmi-audio-extractor",
+  "name": "HDMI Audio Extractor",
+  "version": "1.0.0",
+  "tier": "declarative",
+  "roles": {
+    "device": {
+      "topology": "DIRECT",
+      "protocols": [
+        "OTHER"
+      ],
+      "power_mode": "ALWAYS_ON",
+      "timing": {
+        "settle_ms": 500
+      },
+      "switching": [
+        {
+          "output": "hdmi_out",
+          "inputs": [
+            "hdmi_in"
+          ]
+        },
+        {
+          "output": "optical_out",
+          "inputs": [
+            "hdmi_in"
+          ]
+        },
+        {
+          "output": "analog_out",
+          "inputs": [
+            "hdmi_in"
+          ]
+        }
+      ]
+    }
+  },
+  "device_model": {
+    "class": "av_passive",
+    "capabilities": [
+      {
+        "id": "cap.av_output@v1",
+        "endpoints": [
+          {
+            "key": "hdmi_in",
+            "name": "HDMI In",
+            "flow": "IN",
+            "signal": "Video",
+            "connector": "HDMI",
+            "class_kind": "PHYSICAL",
+            "multi_binding": false
+          },
+          {
+            "key": "hdmi_out",
+            "name": "HDMI Out",
+            "flow": "OUT",
+            "signal": "Video",
+            "connector": "HDMI",
+            "class_kind": "PHYSICAL",
+            "multi_binding": false
+          },
+          {
+            "key": "optical_out",
+            "name": "Optical Out",
+            "flow": "OUT",
+            "signal": "Audio",
+            "connector": "Digital_Optical",
+            "class_kind": "PHYSICAL",
+            "multi_binding": false
+          },
+          {
+            "key": "analog_out",
+            "name": "Analog Out",
+            "flow": "OUT",
+            "signal": "Audio",
+            "connector": "Stereo",
+            "class_kind": "PHYSICAL",
+            "multi_binding": false
+          }
+        ]
+      }
+    ]
+  },
+  "category": "Video",
+  "device_types": [
+    "Extractor"
+  ]
+}

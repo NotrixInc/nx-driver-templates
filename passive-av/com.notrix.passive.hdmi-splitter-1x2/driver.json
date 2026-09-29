@@ -1,0 +1,71 @@
+{
+  "schema_version": 2,
+  "id": "com.notrix.passive.hdmi-splitter-1x2",
+  "name": "HDMI Splitter 1×2",
+  "version": "1.0.0",
+  "tier": "declarative",
+  "roles": {
+    "device": {
+      "topology": "DIRECT",
+      "protocols": [
+        "OTHER"
+      ],
+      "power_mode": "ALWAYS_ON",
+      "timing": {
+        "settle_ms": 500
+      },
+      "switching": [
+        {
+          "outputs": [
+            "hdmi_out1",
+            "hdmi_out2"
+          ],
+          "inputs": [
+            "hdmi_in"
+          ]
+        }
+      ]
+    }
+  },
+  "device_model": {
+    "class": "av_passive",
+    "capabilities": [
+      {
+        "id": "cap.av_output@v1",
+        "endpoints": [
+          {
+            "key": "hdmi_in",
+            "name": "HDMI In",
+            "flow": "IN",
+            "signal": "Video",
+            "connector": "HDMI",
+            "class_kind": "PHYSICAL",
+            "multi_binding": false
+          },
+          {
+            "key": "hdmi_out1",
+            "name": "HDMI Out 1",
+            "flow": "OUT",
+            "signal": "Video",
+            "connector": "HDMI",
+            "class_kind": "PHYSICAL",
+            "multi_binding": false
+          },
+          {
+            "key": "hdmi_out2",
+            "name": "HDMI Out 2",
+            "flow": "OUT",
+            "signal": "Video",
+            "connector": "HDMI",
+            "class_kind": "PHYSICAL",
+            "multi_binding": false
+          }
+        ]
+      }
+    ]
+  },
+  "category": "Video",
+  "device_types": [
+    "Splitter"
+  ]
+}

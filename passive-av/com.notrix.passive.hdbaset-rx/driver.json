@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "id": "com.notrix.passive.hdbaset-rx",
+  "name": "HDBaseT Receiver",
+  "version": "1.0.0",
+  "tier": "declarative",
+  "roles": {
+    "device": {
+      "topology": "DIRECT",
+      "protocols": [
+        "OTHER"
+      ],
+      "power_mode": "ALWAYS_ON",
+      "timing": {
+        "settle_ms": 300
+      },
+      "switching": [
+        {
+          "output": "hdmi_out",
+          "inputs": [
+            "hdbt_in"
+          ]
+        }
+      ]
+    }
+  },
+  "device_model": {
+    "class": "av_passive",
+    "capabilities": [
+      {
+        "id": "cap.av_output@v1",
+        "endpoints": [
+          {
+            "key": "hdbt_in",
+            "name": "HDBaseT In",
+            "flow": "IN",
+            "signal": "Video",
+            "connector": "HDBaseT",
+            "class_kind": "PHYSICAL",
+            "multi_binding": false
+          },
+          {
+            "key": "hdmi_out",
+            "name": "HDMI Out",
+            "flow": "OUT",
+            "signal": "Video",
+            "connector": "HDMI",
+            "class_kind": "PHYSICAL",
+            "multi_binding": false
+          }
+        ]
+      }
+    ]
+  },
+  "category": "Video",
+  "device_types": [
+    "Extender"
+  ]
+}
