@@ -2,7 +2,6 @@ package driver
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -12,9 +11,19 @@ import (
 	driversdk "github.com/NotrixInc/nx-driver-sdk"
 )
 
-// maxSnapshotBase64Bytes caps the base64 payload size published via telemetry.
-// Images larger than this are published as URL-only to avoid bloating the DB.
-const maxSnapshotBase64Bytes = 512 * 1024 // 512 KB
+// DescriptorMetric is where cap.camera@v1 publishes the camera's descriptor
+// (CAMERA-STREAMING.md §4.1). The controller's Media Manager reads it and does
+// all the video work; this driver only describes the camera.
+const DescriptorMetric = "camera_descriptor"
+
+// CameraCapType is the message type the controller sends camera commands as.
+const CameraCapType = "cap.camera@v1"
+
+// minProbeInterval is the floor for the reachability probe. Snapshots no
+// longer travel the bus — the controller fetches them itself, on demand — so
+// the probe only proves the camera answers, and once every ten seconds is
+// plenty for that.
+const minProbeInterval = 10 * time.Second
 
 type ISAPICameraDriver struct {
 	deviceID string
@@ -22,6 +31,12 @@ type ISAPICameraDriver struct {
 	cfg      Config
 	client   *Client
 	stopCh   chan struct{}
+	bus      *driversdk.MessageBus
+
+	// stopMove ends a PTZ move that was never followed by ptz_stop — a phone
+	// that drops off Wi-Fi mid-press must not leave the camera spinning.
+	moveMu   sync.Mutex
+	stopMove *time.Timer
 
 	// Backoff tracking for snapshot failures.
 	mu                  sync.Mutex
@@ -34,7 +49,7 @@ func NewISAPICameraDriver(deviceID string) *ISAPICameraDriver {
 }
 
 func (d *ISAPICameraDriver) ID() string                 { return "com.notrix.camera.isapi" }
-func (d *ISAPICameraDriver) Version() string            { return "0.1.5" }
+func (d *ISAPICameraDriver) Version() string            { return "0.2.0" }
 func (d *ISAPICameraDriver) Type() driversdk.DriverType { return driversdk.DriverTypeDevice }
 func (d *ISAPICameraDriver) Protocols() []driversdk.Protocol {
 	return []driversdk.Protocol{driversdk.ProtocolIP}
@@ -132,6 +147,7 @@ func (d *ISAPICameraDriver) Variables() ([]driversdk.Variable, error) {
 	return []driversdk.Variable{
 		{Key: "snapshot", Type: driversdk.VariableTypeImage, Unit: "", Readable: true, Writable: false},
 		{Key: "stream_url", Type: driversdk.VariableTypeVideo, Unit: "", Readable: true, Writable: false},
+		{Key: DescriptorMetric, Type: driversdk.VariableTypeText, Unit: "", Readable: true, Writable: false},
 	}, nil
 }
 
@@ -169,12 +185,31 @@ func (d *ISAPICameraDriver) Start(ctx context.Context) error {
 		At:       d.deps.Clock.Now(),
 	})
 
+	d.publishDescriptor(ctx)
+
+	// Camera commands (PTZ, presets) arrive on this device's own queue. A
+	// driver without the bus still serves video and snapshots; it just cannot
+	// move the camera, so a failure here is logged rather than fatal.
+	if bus, err := driversdk.NewMessageBusFromEnv(d.deviceID, d.deps.Logger); err != nil {
+		d.deps.Logger.Warn("camera commands unavailable", "err", err.Error())
+	} else {
+		bus.RegisterHandlerFunc(CameraCapType, d.handleCameraMessage)
+		if err := bus.Start(ctx); err != nil {
+			d.deps.Logger.Warn("camera commands unavailable", "err", err.Error())
+		} else {
+			d.bus = bus
+		}
+	}
+
 	// Don't block Start() with a potentially slow snapshot fetch —
 	// let the background goroutine handle the first attempt too.
 
 	d.stopCh = make(chan struct{})
 	go func() {
 		baseInterval := time.Duration(d.cfg.SnapshotRefreshMs) * time.Millisecond
+		if baseInterval < minProbeInterval {
+			baseInterval = minProbeInterval
+		}
 		currentInterval := baseInterval
 		ticker := time.NewTicker(currentInterval)
 		defer ticker.Stop()
@@ -248,21 +283,14 @@ func (d *ISAPICameraDriver) publishSnapshot(ctx context.Context) error {
 		return nil
 	}
 
+	// No JPEG bytes on the bus (CAMERA-STREAMING §12): the frame proved the
+	// camera is reachable, and what is published points at the controller's own
+	// snapshot endpoint, which serves it coalesced and resized.
 	payload := map[string]any{
 		"mime":         ct,
-		"snapshot_url": d.client.SnapshotURL(),
+		"snapshot_url": "/v1/cameras/" + d.deviceID + "/snapshot",
+		"captured_at":  d.deps.Clock.Now().UTC().Format(time.RFC3339),
 	}
-
-	// Only include base64 data if it's within a reasonable size.
-	// Large payloads bloat meta_json and slow down DB read/writes.
-	encoded := base64.StdEncoding.EncodeToString(b)
-	if len(encoded) <= maxSnapshotBase64Bytes {
-		payload["bytes_base64"] = encoded
-	} else {
-		d.deps.Logger.Warn("snapshot too large for inline base64, publishing URL only",
-			"size_bytes", len(b), "base64_len", len(encoded))
-	}
-
 	data, _ := json.Marshal(payload)
 	_ = d.deps.Publisher.PublishVariable(ctx, driversdk.VariableUpdate{
 		DeviceID: d.deviceID,
@@ -284,10 +312,11 @@ func (d *ISAPICameraDriver) HandleCommand(ctx context.Context, cmd driversdk.Com
 			return driversdk.CommandResult{Success: false, Message: err.Error()}, err
 		}
 
+		_ = b
 		payload := map[string]any{
 			"mime":         ct,
-			"bytes_base64": base64.StdEncoding.EncodeToString(b),
-			"snapshot_url": d.client.SnapshotURL(),
+			"snapshot_url": "/v1/cameras/" + d.deviceID + "/snapshot",
+			"captured_at":  d.deps.Clock.Now().UTC().Format(time.RFC3339),
 		}
 		data, _ := json.Marshal(payload)
 
@@ -337,9 +366,124 @@ func (d *ISAPICameraDriver) Health(ctx context.Context) (driversdk.HealthStatus,
 }
 
 func (d *ISAPICameraDriver) Stop(ctx context.Context) error {
+	d.disarmAutoStop()
+	if d.bus != nil {
+		_ = d.bus.Stop(ctx)
+		d.bus = nil
+	}
 	if d.stopCh != nil {
 		close(d.stopCh)
 		d.stopCh = nil
 	}
 	return nil
+}
+
+// publishDescriptor tells the controller how to reach this camera's video.
+// Credentials stay out of it: credential_ref names the controller's own copy
+// of this device's username and password.
+func (d *ISAPICameraDriver) publishDescriptor(ctx context.Context) {
+	auth := d.client.AuthType()
+	if auth != "basic" {
+		auth = "digest"
+	}
+	desc := map[string]any{
+		"camera_id": d.deviceID,
+		"streams": map[string]any{
+			"main": map[string]any{"url": d.client.MainStreamURL(), "codec": "h264"},
+			"sub":  map[string]any{"url": d.client.SubStreamURL(), "codec": "h264"},
+		},
+		"snapshot":       map[string]any{"url": d.client.DescriptorSnapshotURL(), "auth": auth},
+		"credential_ref": "secret://" + d.deviceID + "/camera",
+		"caps": map[string]any{
+			"ptz":           d.cfg.PTZ,
+			"two_way_audio": false,
+			"doorbell":      false,
+			"motion_events": d.cfg.MotionEvents,
+		},
+	}
+	data, _ := json.Marshal(desc)
+	_ = d.deps.Publisher.PublishVariable(ctx, driversdk.VariableUpdate{
+		DeviceID: d.deviceID,
+		Key:      DescriptorMetric,
+		Value:    data,
+		Quality:  driversdk.QualityGood,
+		Source:   driversdk.SourceDriver,
+		At:       d.deps.Clock.Now(),
+	})
+}
+
+// cameraCommand is the payload of a cap.camera@v1 message.
+type cameraCommand struct {
+	Command string         `json:"command"`
+	Args    map[string]any `json:"args"`
+}
+
+// maxMove bounds a continuous move with no ptz_stop after it.
+const maxMove = 2 * time.Second
+
+func (d *ISAPICameraDriver) handleCameraMessage(ctx context.Context, msg driversdk.BusMessage) error {
+	var cmd cameraCommand
+	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
+		return fmt.Errorf("bad %s payload: %w", CameraCapType, err)
+	}
+	if !d.cfg.PTZ {
+		return fmt.Errorf("camera is not configured for PTZ")
+	}
+	cctx, cancel := context.WithTimeout(ctx, time.Duration(d.cfg.RequestTimeoutSeconds)*time.Second)
+	defer cancel()
+
+	var err error
+	switch cmd.Command {
+	case "ptz_move":
+		pan, tilt, zoom := num(cmd.Args["pan"]), num(cmd.Args["tilt"]), num(cmd.Args["zoom"])
+		if err = d.client.PTZContinuous(cctx, pan, tilt, zoom); err == nil {
+			d.armAutoStop()
+		}
+	case "ptz_stop":
+		d.disarmAutoStop()
+		err = d.client.PTZContinuous(cctx, 0, 0, 0)
+	case "preset_goto":
+		err = d.client.PresetGoto(cctx, int(num(cmd.Args["preset"])))
+	case "preset_save":
+		name, _ := cmd.Args["name"].(string)
+		err = d.client.PresetSave(cctx, int(num(cmd.Args["preset"])), name)
+	default:
+		err = fmt.Errorf("unknown camera command %q", cmd.Command)
+	}
+	if err != nil {
+		d.deps.Logger.Warn("camera command failed", "command", cmd.Command, "err", err.Error())
+	}
+	return err
+}
+
+func (d *ISAPICameraDriver) armAutoStop() {
+	d.moveMu.Lock()
+	defer d.moveMu.Unlock()
+	if d.stopMove != nil {
+		d.stopMove.Stop()
+	}
+	d.stopMove = time.AfterFunc(maxMove, func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = d.client.PTZContinuous(ctx, 0, 0, 0)
+	})
+}
+
+func (d *ISAPICameraDriver) disarmAutoStop() {
+	d.moveMu.Lock()
+	defer d.moveMu.Unlock()
+	if d.stopMove != nil {
+		d.stopMove.Stop()
+		d.stopMove = nil
+	}
+}
+
+func num(v any) float64 {
+	switch n := v.(type) {
+	case float64:
+		return n
+	case int:
+		return float64(n)
+	}
+	return 0
 }

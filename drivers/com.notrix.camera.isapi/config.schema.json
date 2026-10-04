@@ -14,7 +14,10 @@
     "snapshot_resolution": { "type": "string", "default": "640x480", "description": "Snapshot resolution query value (e.g. 640x480)" },
     "snapshot_refresh_ms": { "type": "integer", "default": 1000, "minimum": 250, "maximum": 10000, "description": "Snapshot refresh interval in milliseconds for live preview publishing" },
     "embed_credentials_in_rtsp_url": { "type": "boolean", "default": false, "description": "If true, returns an RTSP URL with credentials embedded (rtsp://user:pass@...)" },
-    "request_timeout_seconds": { "type": "integer", "default": 8, "minimum": 1, "maximum": 60 }
+    "request_timeout_seconds": { "type": "integer", "default": 8, "minimum": 1, "maximum": 60 },
+    "ptz": { "type": "boolean", "title": "PTZ", "default": false, "description": "Camera can pan, tilt and zoom (enables PTZ controls in the app)" },
+    "motion_events": { "type": "boolean", "title": "Motion events", "default": false, "description": "Camera reports motion events" },
+    "keep_warm": { "type": "boolean", "title": "Keep warm", "default": false, "description": "Keep the sub stream connected so live view opens instantly (up to 4 cameras per controller)" }
   },
   "required": ["ip", "username", "password"]
 }

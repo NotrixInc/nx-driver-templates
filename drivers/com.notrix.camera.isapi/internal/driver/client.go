@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"crypto/md5"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net"
@@ -239,4 +240,110 @@ func md5Hash(text string) string {
 	h := md5.New()
 	h.Write([]byte(text))
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// ── cap.camera@v1 (CAMERA-STREAMING.md §4.1) ───────────────────────────
+
+// MainStreamURL and SubStreamURL are the descriptor's streams. Never with
+// credentials: the controller resolves those from its own secret store.
+func (c *Client) MainStreamURL() string { return c.rtspURL(c.channelNumber*100 + 1) }
+func (c *Client) SubStreamURL() string  { return c.rtspURL(c.channelNumber*100 + 2) }
+
+func (c *Client) rtspURL(code int) string {
+	u := url.URL{Scheme: "rtsp", Host: net.JoinHostPort(c.ip, fmt.Sprintf("%d", c.streamPort)), Path: fmt.Sprintf("/Streaming/Channels/%d", code)}
+	return u.String()
+}
+
+// DescriptorSnapshotURL is the sub stream's still image: the camera scales it
+// for us, so the controller decodes nothing for a grid tile.
+func (c *Client) DescriptorSnapshotURL() string {
+	u := url.URL{Scheme: "http", Host: c.httpHost(), Path: fmt.Sprintf("/ISAPI/Streaming/channels/%d/picture", c.channelNumber*100+2)}
+	return u.String()
+}
+
+func (c *Client) httpHost() string {
+	if c.snapshotPort == 80 {
+		return c.ip
+	}
+	return net.JoinHostPort(c.ip, fmt.Sprintf("%d", c.snapshotPort))
+}
+
+// AuthType is what the descriptor tells the controller to answer with.
+func (c *Client) AuthType() string { return c.authType }
+
+// isapi sends one ISAPI request, answering a digest challenge.
+func (c *Client) isapi(ctx context.Context, method, path, body string) error {
+	target := "http://" + c.httpHost() + path
+	send := func(authz string) (*http.Response, error) {
+		req, err := http.NewRequestWithContext(ctx, method, target, strings.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+		if body != "" {
+			req.Header.Set("Content-Type", "application/xml")
+		}
+		if authz != "" {
+			req.Header.Set("Authorization", authz)
+		} else if c.authType == "basic" {
+			req.SetBasicAuth(c.username, c.password)
+		}
+		return c.http.Do(req)
+	}
+	resp, err := send("")
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		chal := resp.Header.Get("WWW-Authenticate")
+		resp.Body.Close()
+		if !strings.HasPrefix(strings.ToLower(chal), "digest") {
+			return fmt.Errorf("isapi %s %s: unauthorized", method, path)
+		}
+		authz, err := c.buildDigestAuthHeader(method, path, chal)
+		if err != nil {
+			return err
+		}
+		if resp, err = send(authz); err != nil {
+			return err
+		}
+	}
+	defer resp.Body.Close()
+	msg, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("isapi %s %s: %s: %s", method, path, resp.Status, strings.TrimSpace(string(msg)))
+	}
+	return nil
+}
+
+func clampPTZ(v float64) int {
+	if v > 100 {
+		v = 100
+	}
+	if v < -100 {
+		v = -100
+	}
+	return int(v)
+}
+
+// PTZContinuous starts a move at the given speeds (-100..100). A zero vector
+// stops. Moves are RELATIVE in bus terms (§20.6): a speed, not a position.
+func (c *Client) PTZContinuous(ctx context.Context, pan, tilt, zoom float64) error {
+	body := fmt.Sprintf("<PTZData><pan>%d</pan><tilt>%d</tilt><zoom>%d</zoom></PTZData>", clampPTZ(pan), clampPTZ(tilt), clampPTZ(zoom))
+	return c.isapi(ctx, http.MethodPut, fmt.Sprintf("/ISAPI/PTZCtrl/channels/%d/continuous", c.channelNumber), body)
+}
+
+// PresetGoto recalls a preset. ABSOLUTE in bus terms.
+func (c *Client) PresetGoto(ctx context.Context, preset int) error {
+	return c.isapi(ctx, http.MethodPut, fmt.Sprintf("/ISAPI/PTZCtrl/channels/%d/presets/%d/goto", c.channelNumber, preset), "")
+}
+
+// PresetSave stores the current position as a preset.
+func (c *Client) PresetSave(ctx context.Context, preset int, name string) error {
+	if name == "" {
+		name = fmt.Sprintf("Preset %d", preset)
+	}
+	var esc strings.Builder
+	_ = xml.EscapeText(&esc, []byte(name))
+	body := fmt.Sprintf("<PTZPreset><id>%d</id><presetName>%s</presetName></PTZPreset>", preset, esc.String())
+	return c.isapi(ctx, http.MethodPut, fmt.Sprintf("/ISAPI/PTZCtrl/channels/%d/presets/%d", c.channelNumber, preset), body)
 }

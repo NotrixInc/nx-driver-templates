@@ -1,10 +1,10 @@
 {
   "id": "com.notrix.camera.isapi",
   "name": "ISAPI Camera Driver (Snapshot + RTSP)",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "driver_type": "DEVICE",
   "device_types": ["Camera"],
-  "capabilities": ["camera", "snapshot", "streaming"],
+  "capabilities": ["camera", "snapshot", "streaming", "cap.camera@v1"],
   "supported_topologies": ["DIRECT_IP"],
   "protocols": ["IP"],
   "entrypoint": {
