@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driver documentation</title>
+<!--
+  Shown in the Docs tab of this driver's settings in the Notrix console.
+  Write it for the installer: what the driver does and what has to be set on
+  the device. Images and stylesheets go beside this file in docs/ and are
+  referenced by relative path (e.g. <img src="wiring.png">).
+  Scripts do not run here, and nothing loads from other sites.
+-->
+<style>
+  body { font: 14px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1f2328; margin: 0; padding: 16px 20px 32px; max-width: 860px; }
+  h1 { font-size: 1.5em; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+  h2 { font-size: 1.2em; margin-top: 1.6em; }
+  code { background: #f2f4f7; padding: .1em .35em; border-radius: 4px; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid #d0d7de; padding: 6px 10px; text-align: left; }
+  th { background: #f6f8fa; }
+  .note { border-left: 3px solid #FF9839; background: #fff6ed; padding: 8px 12px; }
+  img { max-width: 100%; }
+</style>
+</head>
+<body>
+  <h1>Device name</h1>
+  <p>One or two sentences on what this driver controls and how it talks to the device.</p>
+
+  <h2>Supported models</h2>
+  <ul>
+    <li>Model A (firmware 1.2 or later)</li>
+  </ul>
+
+  <h2>Device setup</h2>
+  <p>What must be configured on the device before adding it to Notrix:</p>
+  <ol>
+    <li>Enable network control in the device menu.</li>
+    <li>Give the device a fixed IP address or a DHCP reservation.</li>
+  </ol>
+  <p class="note">Anything easy to get wrong, such as a default password or a control port that is off by default.</p>
+
+  <h2>Driver settings</h2>
+  <table>
+    <tr><th>Setting</th><th>Description</th></tr>
+    <tr><td><code>host</code></td><td>IP address of the device.</td></tr>
+  </table>
+
+  <h2>Connections</h2>
+  <p>The inputs and outputs this driver offers on the Bindings page.</p>
+
+  <h2>Troubleshooting</h2>
+  <p>Common problems and what the Logs tab shows for them.</p>
+</body>
+</html>
