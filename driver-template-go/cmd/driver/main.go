@@ -1,67 +1,39 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"flag"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+	"io"
 
-	// Replace with your published module path
-	// "github.com/NotrixInc/nx-driver-sdk"
 	driversdk "github.com/NotrixInc/nx-driver-sdk"
+	"github.com/NotrixInc/nx-driver-sdk/run"
 
 	"github.com/NotrixInc/nx-driver-templates/driver-template-go/internal/driver"
 )
 
+// main is the whole entry point. run.Main runs the driver standalone (one
+// device, `-device_id … -config …`) or hosted (every device of the package in
+// one process, `-host`), as controller-core chooses, and owns flags, signals,
+// panics in Init/Start/Stop, and graceful stop.
+//
+// Declare `"hosting": "package"` in the manifest's entrypoint so the controller
+// runs every device of the package in one process. Keep no per-device state in
+// package-level variables: devices share the process.
 func main() {
-	var (
-		deviceID = flag.String("device_id", "", "Core device UUID (assigned by controller-core)")
-		cfgPath  = flag.String("config", "", "Path to config JSON file")
-	)
-	flag.Parse()
-
-	if *cfgPath == "" {
-		panic("missing -config path")
-	}
-
-	cfgBytes, err := os.ReadFile(*cfgPath)
-	if err != nil {
-		panic(err)
-	}
-
-	// In production, driver-host supplies these deps:
-	// - Publisher backed by gRPC CoreService client
-	// - structured logger
-	// Here we wire placeholders; driver-host will replace it.
-	deps := driversdk.Dependencies{
-		Publisher: driversdk.NewNoopPublisher(), // implement in host or replace
-		Logger:    driversdk.NewStdLogger(),     // implement in sdk/host
-		Clock:     driversdk.NewSystemClock(),
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	d := driver.NewExampleIPDriver(*deviceID)
-
-	if err := d.Init(ctx, deps, driversdk.NewJSONConfig(cfgBytes)); err != nil {
-		panic(err)
-	}
-	if err := d.Start(ctx); err != nil {
-		panic(err)
-	}
-
-	// Wait for SIGTERM/SIGINT
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
-
-	<-sigC
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
-
-	_ = d.Stop(shutdownCtx)
-	_ = json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "stopped"})
+	run.Main(run.Program{
+		DriverID: "com.example.ipdevice",
+		New: func(d run.Device) (run.Instance, error) {
+			return driver.NewExampleIPDriver(d.ID), nil
+		},
+		Publisher: publisher,
+	})
 }
+
+// publisher connects a device to controller-core. Replace it with the gRPC
+// CoreService publisher the first-party drivers use (internal/publisher in any
+// of them: one shared connection per process, Factory for run.Main).
+func publisher(coreAddr, driverID, externalKey string, log driversdk.Logger) (driversdk.Publisher, io.Closer, error) {
+	return driversdk.NewNoopPublisher(), noClose{}, nil
+}
+
+type noClose struct{}
+
+func (noClose) Close() error { return nil }

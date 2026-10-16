@@ -29,6 +29,7 @@
   "driver_type": "DEVICE",
   "entrypoint": {
     "runtime": "go",
-    "path": "bin/driver"
+    "path": "bin/driver",
+    "hosting": "package"
   }
 }
